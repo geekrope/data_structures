@@ -128,6 +128,9 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="data_structures.cpp" />
+    <ClCompile Include="gcd.cpp" />
+    <ClCompile Include="heap.cpp" />
+    <ClCompile Include="three_way_disjoint.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
