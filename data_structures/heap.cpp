@@ -97,6 +97,7 @@ void swap(vector<int>& v, int x, int y)
 	v[x] = v[y];
 	v[y] = temp;
 }
+
 void heap_sort(vector<int>& v)
 {
 	for (int index = 0; index < v.size(); index++)

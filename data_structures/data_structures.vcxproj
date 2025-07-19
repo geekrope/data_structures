@@ -127,6 +127,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="AVLTree.cpp" />
     <ClCompile Include="data_structures.cpp" />
     <ClCompile Include="gcd.cpp" />
     <ClCompile Include="heap.cpp" />
