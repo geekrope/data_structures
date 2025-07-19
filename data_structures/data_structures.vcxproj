@@ -132,6 +132,9 @@
     <ClCompile Include="heap.cpp" />
     <ClCompile Include="three_way_disjoint.cpp" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="AVLTree.py" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
