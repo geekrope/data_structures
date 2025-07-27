@@ -1,4 +1,3 @@
-import random
 import numpy.random as rand
 from enum import Enum
 
@@ -16,6 +15,7 @@ class SkipListNode:
         self.prev = None
         self.next = None
         self.below = None
+        self.span = 1
 
     @staticmethod
     def create_node(value, prev, next, below=None):
@@ -104,6 +104,8 @@ class SkipList:
         left_sentinel = SkipListNode.create_sentinel(NodeType.LeftSentinel)
         right_sentinel = SkipListNode.create_sentinel(NodeType.RightSentinel)
         left_sentinel.link_next(right_sentinel)
+        left_sentinel.span = self.size + 1
+        right_sentinel.span = 0
         left_sentinel.below = prev[0]
         right_sentinel.below = prev[1]
         return (left_sentinel, right_sentinel)
@@ -123,16 +125,23 @@ class SkipList:
         return added
 
     def __init__(self):
-        self.levels = [self.init_level((None, None))]
         self.size = 0
+        self.levels = [self.init_level((None, None))]        
+
+    def __len__(self):
+        return self.size
 
     def __repr__(self):
         result = ""
+        space = 3
         for level in self.levels:
             level_repr = ""
             current = level[0]
             while current != None:
-                level_repr = level_repr + repr(current) + "-"
+                level_repr = level_repr + repr(current).ljust(space) + '-'
+
+                for i in range(current.span-1):
+                     level_repr = level_repr + ' '*space + '-'
                 current = current.next
             result = result + level_repr + "\n"
 
@@ -162,19 +171,26 @@ class SkipList:
 
     def insert(self, value, verbose=False):
         insert_after = []
+        positions = []
         new_node = SkipListNode.create_node(value, None, None)
         begin = self.levels[-1][0]
+        position = 0
 
         while begin != None:  # itterate while we do not reach the bottom layer
-            current = begin
+            current = begin           
 
             while current.next < new_node:
+                position += current.span
                 current = current.next
+
+            positions.append(position)
 
             insert_after.append(current)
             begin = current.below
 
         insert_after = insert_after[::-1]
+        positions = positions[::-1]
+        insert_position = positions[0]
         _promotions = self.promotions()
 
         # account for the difference in the height cause by promotions
@@ -182,36 +198,51 @@ class SkipList:
             diff = _promotions - len(self.levels)
             added = self.add_levels(diff)
             insert_after.extend(added)
+            positions.extend([0] * diff)
 
+        tower = []
         for ptr in range(_promotions):
             after = insert_after[ptr]
 
             next = after.next
             after.link_next(new_node)
             new_node.link_next(next)
+            tower.append(new_node)
 
             new_node = SkipListNode.create_node(value, None, None, below=new_node)
+
+        for ptr in range(len(self.levels)):
+            current = insert_after[ptr]
+            if ptr < _promotions:                
+                next_position = positions[ptr] + current.span
+                current.span = insert_position - positions[ptr] + 1
+                tower[ptr].span = next_position - insert_position
+            else:
+                current.span += 1
 
         if verbose:
             print(self)
 
         self.size += 1
 
-    def delete(self, value):
-        node = self.search(value)
-
-        if node == None:
-            return False
-        else:
-            while node != None:
-                node.prev.link_next(node.next)
-                node = node.below
-            return True
+    #def delete(self, value):
+    #    node = self.search(value)
+    #
+    #    if node == None:
+    #        return False
+    #    else:
+    #        while node != None:
+    #            node.prev.link_next(node.next)
+    #            node = node.below
+    #
+    #        self.size -= 1
+    #        return True
 
 
 list = SkipList()
-for i in range(20):
+for i in rand.randint(0,100,30):
     list.insert(i, False)
 
-list.delete(15)
 print(list)
+#list.delete(15)
+#print(list)
