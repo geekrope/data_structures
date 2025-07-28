@@ -1,4 +1,6 @@
-import numpy.random as rand
+import numpy as np
+import time
+import matplotlib.pyplot as plt
 from enum import Enum
 
 
@@ -52,45 +54,52 @@ class SkipListNode:
             return str(self.value)
 
     def __lt__(self, operand):
-        if type(operand) is int:
+        if isinstance(operand, (int, np.integer)):
             if self.type == NodeType.Node:
                 return self.value < operand
             else:
                 return self.type == NodeType.LeftSentinel
-        elif type(operand) is SkipListNode:
+        elif isinstance(operand, SkipListNode):
             if self.type == NodeType.LeftSentinel:
                 return operand.type != NodeType.LeftSentinel
             elif self.type == NodeType.RightSentinel:
                 return False
             else:
                 return self.value < operand.value
+        else:
+            raise TypeError(f"unsupported type {type(operand)}")
 
     def __gt__(self, operand):
-        if type(operand) is int:
+        if isinstance(operand, (int, np.integer)):
             if self.type == NodeType.Node:
                 return self.value > operand
             else:
                 return self.type == NodeType.RightSentinel
-        elif type(operand) is SkipListNode:
+        elif isinstance(operand, SkipListNode):
             if self.type == NodeType.RightSentinel:
                 return operand.type != NodeType.RightSentinel
             elif self.type == NodeType.LeftSentinel:
                 return False
             else:
                 return self.value > operand.value
+        else:
+            raise TypeError(f"unsupported type {type(operand)}")
 
     def __eq__(self, operand):
         if operand is None:
             return False
-        elif type(operand) is int:
+        elif isinstance(operand, (int, np.integer)):
             if self.type == NodeType.Node:
                 return self.value == operand
             else:
                 return False
-        elif self.type == NodeType.Node and operand.type == NodeType.Node:
-            return self.value == operand.value
+        elif isinstance(operand, SkipListNode):
+            if self.type == NodeType.Node and operand.type == NodeType.Node:
+                return self.value == operand.value
+            else:
+                return self.type == operand.type
         else:
-            return self.type == operand.type
+            raise TypeError(f"unsupported type {type(operand)}")
 
     def __le__(self, operand):
         return self < operand or self == operand
@@ -126,7 +135,7 @@ class SkipList:
 
     def __init__(self):
         self.size = 0
-        self.levels = [self.init_level((None, None))]        
+        self.levels = [self.init_level((None, None))]
 
     def __len__(self):
         return self.size
@@ -138,17 +147,39 @@ class SkipList:
             level_repr = ""
             current = level[0]
             while current != None:
-                level_repr = level_repr + repr(current).ljust(space) + '-'
+                level_repr = level_repr + repr(current).ljust(space) + "-"
 
-                for i in range(current.span-1):
-                     level_repr = level_repr + ' '*space + '-'
+                for i in range(current.span - 1):
+                    level_repr = level_repr + " " * space + "-"
                 current = current.next
             result = result + level_repr + "\n"
 
         return result
 
+    def __getitem__(self, index):
+        """
+        return the node at the given position at the topmost level
+        """
+        if index < 0 or index >= self.size:
+            raise IndexError("index out of bounds")
+
+        begin = self.levels[-1][0]
+        position = 0
+        index += 1
+
+        while True:
+            while position + begin.span <= index:
+                position += begin.span
+                begin = begin.next
+            if position < index:
+                begin = begin.below
+            else:
+                break
+
+        return begin
+
     def promotions(self):
-        return rand.geometric(1 / 2)
+        return min(np.random.geometric(1 / 2), 32)
 
     def search(self, value):
         """
@@ -169,40 +200,44 @@ class SkipList:
 
         return None
 
-    def insert(self, value, verbose=False):
-        insert_after = []
-        positions = []
-        new_node = SkipListNode.create_node(value, None, None)
-        begin = self.levels[-1][0]
+    def contains(self, value):
+        return self.search(value) != None
+
+    def find_predecessors(self, value):
+        predecessors = []
         position = 0
+        begin = self.levels[-1][0]
 
         while begin != None:  # itterate while we do not reach the bottom layer
-            current = begin           
+            current = begin
 
-            while current.next < new_node:
+            while current.next < value:
                 position += current.span
                 current = current.next
 
-            positions.append(position)
+            predecessors.append((current, position))
 
-            insert_after.append(current)
             begin = current.below
 
-        insert_after = insert_after[::-1]
-        positions = positions[::-1]
-        insert_position = positions[0]
+        return predecessors
+
+    def insert(self, value, verbose=False):
+        predecessors = self.find_predecessors(value)
+        new_node = SkipListNode.create_node(value, None, None)
+
+        predecessors = predecessors[::-1]
+        insert_position = predecessors[0][1]
         _promotions = self.promotions()
 
         # account for the difference in the height cause by promotions
         if _promotions > len(self.levels):
             diff = _promotions - len(self.levels)
             added = self.add_levels(diff)
-            insert_after.extend(added)
-            positions.extend([0] * diff)
+            predecessors.extend(zip(added, [0] * diff))
 
         tower = []
         for ptr in range(_promotions):
-            after = insert_after[ptr]
+            after = predecessors[ptr][0]
 
             next = after.next
             after.link_next(new_node)
@@ -212,10 +247,10 @@ class SkipList:
             new_node = SkipListNode.create_node(value, None, None, below=new_node)
 
         for ptr in range(len(self.levels)):
-            current = insert_after[ptr]
-            if ptr < _promotions:                
-                next_position = positions[ptr] + current.span
-                current.span = insert_position - positions[ptr] + 1
+            current = predecessors[ptr][0]
+            if ptr < _promotions:
+                next_position = predecessors[ptr][1] + current.span
+                current.span = insert_position - predecessors[ptr][1] + 1
                 tower[ptr].span = next_position - insert_position
             else:
                 current.span += 1
@@ -225,24 +260,38 @@ class SkipList:
 
         self.size += 1
 
-    #def delete(self, value):
-    #    node = self.search(value)
-    #
-    #    if node == None:
-    #        return False
-    #    else:
-    #        while node != None:
-    #            node.prev.link_next(node.next)
-    #            node = node.below
-    #
-    #        self.size -= 1
-    #        return True
+    def delete(self, value):
+        if not self.contains(value):
+            return False
+
+        predecessors = self.find_predecessors(value)
+
+        for predecessor in predecessors:
+            node = predecessor[0]
+            if node.next == value:
+                node.span += node.next.span - 1
+                node.link_next(node.next.next)
+            else:
+                node.span -= 1
+
+        return True
 
 
 list = SkipList()
-for i in rand.randint(0,100,30):
+size = 20
+rand_input = np.random.randint(0, 10 * size, size)
+seq_input = np.arange(size)
+elapsed_time = []
+for i in rand_input:
+    start = time.time()
     list.insert(i, False)
+    elapsed_time.append(time.time() - start)
 
 print(list)
-#list.delete(15)
-#print(list)
+
+list.delete(15)
+print(list)
+print(list[2])
+
+plt.plot(np.arange(size), elapsed_time)
+plt.show()
