@@ -1,131 +1,51 @@
 #pragma once
 #include <vector>
+#include <cassert>
+#include <stdexcept>
 
-namespace Heap
+namespace heap
 {
 	template<typename T, typename comp = std::less<T>>
-	class Heap
+	class interface
 	{
 	private:
-		std::vector<T> data;
+		using container = std::vector<T>;
 		static constexpr comp precede = comp{};
 
-		int parent(int index)
+	public:
+		static size_t parent_index(size_t index)
 		{
+			assert(index > 0);
 			return (index - 1) / 2;
 		}
-		int left(int index)
+		static size_t left_index(size_t index)
 		{
 			return 2 * index + 1;
 		}
-		int right(int index)
+		static size_t right_index(size_t index)
 		{
 			return 2 * index + 2;
 		}
 
-		void swap(int x, int y)
+		static void swap(container& data, size_t x, size_t y)
 		{
 			auto temp = data[x];
 			data[x] = data[y];
 			data[y] = temp;
 		}
 
-		void bubble_up(int index)
+		static void bubble_up(container& data, size_t start)
 		{
-			int parent = this->parent(index);
+			size_t current = start;
 
-			if (parent < 0)
+			//current>0 is equivalent to current being a child of some element
+			while (current > 0)
 			{
-				return;
-			}
+				auto parent = parent_index(current);
 
-			if (precede(data[index], data[parent]))
-			{
-				swap(parent, index);
-				bubble_up(parent);
-			}
-		}
-		void bubble_down(int index)
-		{
-			int left = this->left(index);
-			int right = this->right(index);
-
-			if (right < data.size())
-			{
-				if (precede(data[left], data[index]) && precede(data[left], data[right]))
+				if (precede(data[current], data[parent]))
 				{
-					swap(index, left);
-					bubble_down(left);
-				}
-				else if (precede(data[right], data[index]))
-				{
-					swap(index, right);
-					bubble_down(right);
-				}
-			}
-			else if (left < data.size() && precede(data[left], data[index]))
-			{
-				swap(index, left);
-				bubble_down(left);
-			}
-		}
-
-	public:
-		void reserve(size_t capacity)
-		{
-			data.reserve(capacity);
-		}
-		void insert(int value)
-		{
-			data.push_back(value);
-			bubble_up(data.size() - 1);
-		}
-		int remove()
-		{
-			auto root = data[0];
-			data[0] = data[data.size() - 1];
-			data.pop_back();
-			bubble_down(0);
-			return root;
-		}
-		int size()
-		{
-			return data.size();
-		}
-		bool is_empty()
-		{
-			return data.size() == 0;
-		}
-	};
-
-	template<typename T>
-	void swap(std::vector<T>& v, int x, int y)
-	{
-		auto temp = v[x];
-		v[x] = v[y];
-		v[y] = temp;
-	}
-
-	template<typename T, typename comp = std::less<T>>
-	void heap_sort(std::vector<T>& v)
-	{
-		constexpr auto precede = comp{};
-		for (int index = 0; index < v.size(); index++)
-		{
-			auto current = index;
-
-			while (true)
-			{
-				auto parent = (current - 1) / 2;
-
-				if (parent < 0)
-				{
-					break;
-				}
-
-				if (precede(v[current], v[parent]))
-				{
-					swap(v, current, parent);
+					swap(data, parent, current);
 					current = parent;
 				}
 				else
@@ -134,28 +54,25 @@ namespace Heap
 				}
 			}
 		}
-
-		for (int end = v.size() - 1; end > 0; end--)
+		static void bubble_down(container& data, size_t end)
 		{
-			swap(v, 0, end);
-
-			auto current = 0;
+			auto current = size_t{};
 
 			while (true)
 			{
-				int left = current * 2 + 1;
-				int right = current * 2 + 2;
+				auto left = left_index(current);
+				auto right = right_index(current);
 
 				if (right < end)
 				{
-					if (precede(v[left], v[current]) && precede(v[left], v[right]))
+					if (precede(data[left], data[current]) && precede(data[left], data[right]))
 					{
-						swap(v, current, left);
+						swap(data, current, left);
 						current = left;
 					}
-					else if (precede(v[right], v[current]))
+					else if (precede(data[right], data[current]))
 					{
-						swap(v, current, right);
+						swap(data, current, right);
 						current = right;
 					}
 					else
@@ -163,9 +80,9 @@ namespace Heap
 						break;
 					}
 				}
-				else if (left < end && precede(v[left], v[current]))
+				else if (left < end && precede(data[left], data[current]))
 				{
-					swap(v, current, left);
+					swap(data, current, left);
 					current = left;
 				}
 				else
@@ -174,5 +91,106 @@ namespace Heap
 				}
 			}
 		}
+
+		static void make_valid(container& data)
+		{
+			for (size_t index = 0; index < data.size(); index++)
+			{
+				bubble_up(data, index);
+			}
+		}
+		static void sort(container& data)
+		{
+			for (size_t end = data.size() - 1; end > 0; end--)
+			{
+				swap(data, 0, end);
+				bubble_down(data, end);
+			}
+		}
+
+		static void insert(container& data, const T& value)
+		{
+			data.push_back(value);
+			bubble_up(data, data.size() - 1);
+		}
+		static void replace_top(container& data, const T& value)
+		{
+			if (data.empty())
+			{
+				insert(data, value);
+			}
+			else
+			{
+				data[0] = value;
+				bubble_down(data, data.size());
+			}
+		}
+		static T remove(container& data)
+		{
+			if (data.empty())
+			{
+				throw std::invalid_argument{ "The data is empty" };
+			}
+
+			auto root = data[0];
+
+			data[0] = data[data.size() - 1];
+			data.pop_back();
+			bubble_down(data, data.size());
+
+			return root;
+		}
+	};
+
+	template<typename T, typename comp = std::less<T>>
+	class heap
+	{
+	private:
+		std::vector<T>& data;
+		using interface = interface<T, comp>;
+	public:
+		heap(std::vector<T>& data)
+			:data(data)
+		{
+			interface::make_valid(data);
+		}
+
+		void insert(const T& value)
+		{
+			interface::insert(data, value);
+		}
+		void replace_top(const T& value)
+		{
+			interface::replace_top(data, value);
+		}
+		T remove()
+		{
+			return interface::remove(data);
+		}
+
+		bool empty()
+		{
+			return data.empty();
+		}
+	};
+
+	template<typename T, typename comp = std::less<T>>
+	class self_contained_heap : public heap<T, comp>
+	{
+	private:
+		std::vector<T> data;
+	public:
+		self_contained_heap()
+			: heap<T, comp>(data)
+		{
+
+		}
+	};
+
+	template<typename T, typename comp = std::less<T>>
+	void heap_sort(std::vector<T>& v)
+	{
+		interface<T, comp>::make_valid(v);
+		interface<T, comp>::sort(v);
 	}
 }

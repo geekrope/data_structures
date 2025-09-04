@@ -128,9 +128,10 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="AVLTree.h" />
-    <ClCompile Include="data_structures.cpp" />
     <ClCompile Include="gcd.h" />
     <ClCompile Include="heap.h" />
+    <ClCompile Include="heap_tests.cpp" />
+    <ClCompile Include="main.cpp" />
     <ClCompile Include="three_way_disjoint.h" />
   </ItemGroup>
   <ItemGroup>
