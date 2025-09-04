@@ -279,8 +279,10 @@ class SkipList:
 
 list = SkipList()
 size = 20
-rand_input = np.random.randint(0, 10 * size, size)
+rand_input = np.random.randint(0, 1000, size)
+input1 = [31, 78, 39, 23, 57, 35, 21, 19, 46, 38, 40, 50, 33, 51, 69, 62, 32, 29, 12, 30, 7, 65, 95, 52, 60, 96, 74, 77, 25, 90, 11, 100, 58, 64, 34, 4, 47, 99, 85, 26, 91, 16, 48, 94, 55, 80, 53, 9, 75, 83]
 seq_input = np.arange(size)
+
 elapsed_time = []
 for i in rand_input:
     start = time.time()
@@ -289,9 +291,9 @@ for i in rand_input:
 
 print(list)
 
-list.delete(15)
+list.delete(69)
 print(list)
 print(list[2])
 
-plt.plot(np.arange(size), elapsed_time)
-plt.show()
+#plt.plot(np.arange(size), elapsed_time)
+#plt.show()
