@@ -1,7 +1,9 @@
 #pragma once
-#include <vector>
+#include <algorithm>
 #include <cassert>
+#include <iterator>
 #include <stdexcept>
+#include <vector>
 
 namespace heap
 {
@@ -162,6 +164,61 @@ namespace heap
 		void replace_top(const T& value)
 		{
 			interface::replace_top(data, value);
+		}
+		T remove()
+		{
+			return interface::remove(data);
+		}
+
+		bool empty()
+		{
+			return data.empty();
+		}
+	};
+
+	template<typename T, typename comp = std::less<T>>
+	class heap_wrapper
+	{
+	private:
+		using element_type = std::reference_wrapper<T>;
+		struct comp_wrapper
+		{
+			static constexpr comp precede = comp{};
+			constexpr bool operator()(element_type left, element_type right) const
+			{
+				return precede(left.get(), right.get());
+			}
+		};
+		std::vector<T>& original_data;
+		std::vector<element_type> data;
+		using interface = interface<element_type, comp_wrapper>;
+	public:
+		heap_wrapper(std::vector<T>& original_data)
+			:original_data(original_data)
+		{
+			data.reserve(original_data.size());
+			std::transform(original_data.begin(), original_data.end(), std::back_insert_iterator<std::vector<element_type>>(data),
+			std::transform(original_data.begin(), original_data.end(), std::back_insert_iterator<std::vector<element_type>>(data),
+				[](auto& item) { return std::ref(item); });
+			interface::make_valid(data);
+		}
+
+		void insert(const T& value)
+		{
+			original_data.push_back(value);
+			interface::insert(data, std::ref(original_data.back()));
+		}
+		void replace_top(const T& value)
+		{
+			if (data.empty())
+			{
+				insert(value);
+			}
+			else
+			{
+				data[0].get() = value;
+				interface::bubble_down(data, data.size());
+			}
 		}
 		T remove()
 		{
