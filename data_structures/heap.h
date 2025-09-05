@@ -277,6 +277,10 @@ namespace heap
 		{
 			return heap.remove();
 		}
+		bool empty()
+		{
+			return heap.empty();
+		}
 	};
 
 	template<typename T, typename comp = std::less<T>>
