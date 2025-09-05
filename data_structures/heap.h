@@ -1,5 +1,7 @@
 #pragma once
+
 #include <algorithm>
+#include <list>
 #include <cassert>
 #include <iterator>
 #include <stdexcept>
@@ -189,16 +191,17 @@ namespace heap
 				return precede(left.get(), right.get());
 			}
 		};
-		std::vector<T>& original_data;
+		std::list<T>& original_data;
 		std::vector<element_type> data;
 		using interface = interface<element_type, comp_wrapper>;
 	public:
-		heap_wrapper(std::vector<T>& original_data)
+		heap_wrapper() = default;
+		heap_wrapper(std::list<T>& original_data)
 			:original_data(original_data)
 		{
 			data.reserve(original_data.size());
-			std::transform(original_data.begin(), original_data.end(), std::back_insert_iterator<std::vector<element_type>>(data),
-			std::transform(original_data.begin(), original_data.end(), std::back_insert_iterator<std::vector<element_type>>(data),
+			std::transform(original_data.begin(), original_data.end(),
+				std::back_insert_iterator<std::vector<element_type>>(data), 
 				[](auto& item) { return std::ref(item); });
 			interface::make_valid(data);
 		}
@@ -241,6 +244,38 @@ namespace heap
 			: heap<T, comp>(data)
 		{
 
+		}
+	};
+
+	template<typename K, typename V, typename comp = std::less<K>>
+	class priority_queue
+	{
+	private:
+		using element_type = std::pair<K, V>;
+		struct key_comparer
+		{
+			static constexpr comp precede = comp{};
+			constexpr bool operator()(element_type left, element_type right) const
+			{
+				return precede(left.first, right.first);
+			}
+		};
+		heap_wrapper<element_type, key_comparer> heap;
+	public:
+		priority_queue() = default;
+		priority_queue(std::list<element_type>& data)
+			: heap(data)
+		{
+
+		}
+
+		void enqueue(const K& key, const V& value)
+		{
+			heap.insert({ key, value });
+		}
+		element_type dequeue()
+		{
+			return heap.remove();
 		}
 	};
 

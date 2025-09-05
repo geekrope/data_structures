@@ -1,3 +1,5 @@
+#include "stdafx.h"
+
 #include <functional>
 #include <iostream>
 #include <stdexcept>
@@ -22,7 +24,7 @@ static string vec_to_string(const vector<int>& v)
 	return os.str();
 }
 
-static void expect_eq_int(int a, int b, const string& msg)
+static void expect_eq_int(size_t a, size_t b, const string& msg)
 {
 	if (a != b)
 		throw runtime_error(msg + " — got: " + to_string(a) + " expected: " + to_string(b));

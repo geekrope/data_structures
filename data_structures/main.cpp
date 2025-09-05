@@ -1,4 +1,7 @@
-﻿#include <algorithm>
+﻿#include "stdafx.h"
+
+#include <algorithm>
+#include <array>
 #include <chrono>
 #include <iostream>
 #include <vector>
@@ -22,6 +25,19 @@ void print(const vector<long long>& v)
 
 int main()
 {
+	std::list<std::pair<int, std::array<int, 2>>> data
+	{
+		{1, { 1, 12 }},
+		{-11, { 13, 15 }},
+		{31, { 17, 19 }},
+		{1988, { 21, 32 }},
+		{-134, { 111, 3312 }}
+	};
+
+	heap::priority_queue<int, std::array<int, 2>> heap(data);
+
+	heap.enqueue(30, { 10, 10 });
+
 	if (!run_tests())
 	{
 		throw std::runtime_error{ "One or more tests failed" };
@@ -31,7 +47,7 @@ int main()
 	constexpr auto single_cap = 2000;
 
 	using heap_element = std::vector<long long>;
-	vector<heap_element> massive(elements_count);
+	list<heap_element> massive(elements_count);
 
 	std::random_device rd;
 	std::mt19937 gen(rd());
@@ -45,7 +61,7 @@ int main()
 			value[j] = dist(gen);
 		}
 
-		massive[i] = value;
+		massive.push_back(value);
 	}
 
 	auto start_point = std::chrono::steady_clock::now();
@@ -61,8 +77,9 @@ int main()
 		std::cout << endl;
 	}*/
 
+	auto heap_buffer = std::vector<heap_element>{ massive.begin(), massive.end() };
 	start_point = std::chrono::steady_clock::now();
-	heap::heap<heap_element> min_heap{ massive };
+	heap::heap<heap_element> min_heap{ heap_buffer };
 	std::cout << endl << "heap: " <<
 		std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - start_point).count() << " ms" << endl;
 
